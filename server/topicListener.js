@@ -6,14 +6,14 @@ var all = require('when').all;
 var keys = process.argv.slice(2);
 if (keys.length < 1) {
   console.log('Usage: %s pattern [pattern...]',
-    basename(process.argv[1]));
+  basename(process.argv[1]));
   process.exit(1);
 }
 
 amqp.connect('amqp://localhost').then(function(conn) {
   process.once('SIGINT', function() { conn.close(); });
   return conn.createChannel().then(function(ch) {
-    var ex = '';
+    var ex = 'test';
     var ok = ch.assertExchange(ex, 'topic', {durable: false});
 
     ok = ok.then(function() {
@@ -23,7 +23,7 @@ amqp.connect('amqp://localhost').then(function(conn) {
     ok = ok.then(function(qok) {
       var queue = qok.queue;
       return all(keys.map(function(rk) {
-        console.log('binding to queue:', ex, rk);
+        console.log('binding to exchange:', ex, '| routing key:', rk);
         ch.bindQueue(queue, ex, rk);
       })).then(function() { return queue; });
     });

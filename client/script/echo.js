@@ -21,7 +21,7 @@
         if(event.which === 13 && this.messageInput.val()) { // Enter key pressed
           // For SEND frames, a destination of the form /exchange/<name>[/<routing-key>] can be used.
           // This destination: sends to exchange <name> with the routing key <routing-key>.
-          this.client.send('/exchange/test', {'content-type':'text/plain'}, this.messageInput.val());
+          this.client.send('/exchange/test/echo', {'content-type':'text/plain'}, this.messageInput.val());
           this.messageInput.val('')
         }
       }.bind(this)
@@ -39,7 +39,7 @@
 
     this.onConnect = function() {
       // subscribe to the test queue on the echo exchange.
-      this.client.subscribe("/exchange/test", this.onMessageReceived.bind(this));
+      this.client.subscribe("/exchange/test/echo", this.onMessageReceived.bind(this));
     };
 
     this.onError = function() {
