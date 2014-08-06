@@ -28,18 +28,17 @@
     });
 
     this.connect = function() {
-      if(this.useSockJS) {
-        // SockJS does not support heart-beat: disable heart-beats
-        this.client.heartbeat.outgoing = 0;
-        this.client.heartbeat.incoming = 0;
-      }
+
+      this.client.heartbeat.outgoing = 5000;
+      // SockJS does not support server --> client heartbeats
+      this.client.heartbeat.incoming = 0;
 
       this.client.connect(this.username, this.password, this.onConnect.bind(this), this.onError.bind(this), '/');
     };
 
     this.onConnect = function() {
       // subscribe to the test queue on the echo exchange.
-      this.client.subscribe("/exchange/test/echo", this.onMessageReceived.bind(this));
+      this.client.subscribe("/exchange/test/echo", this.onMessageReceived.bind(this), {ack: 'client'});
     };
 
     this.onError = function() {
@@ -47,6 +46,9 @@
     };
 
     this.onMessageReceived = function(message) {
+      // acknowledge any message received
+      this.client.ack(message.headers['message-id'], message.headers.subscription, message.headers);
+
       this.log.val(this.log.val() + '\n' + message.body);
     };
 
