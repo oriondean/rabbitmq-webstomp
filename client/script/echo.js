@@ -1,14 +1,34 @@
-(function() {
+  (function() {
 
   var EchoClient = function() {
 
-    this.username = 'yolo';
-    this.password = 'swag';
+    // connection variables
+    this.username = 'guest';
+    this.password = 'guest';
+    this.host = 'localhost';
+    this.virtualHost = '/';
 
+    // subscription variables
+    this.exchange = 'test';
+    this.routingKey = 'echo';
+    this.subscriptionPath = '/exchange/' + this.exchange + '/' + this.routingKey;
+
+    // configuration options
     this.useSockJS = false;
+    this.secure = false;
 
-    var webSocket = this.useSockJS ? new SockJS('http://SL-WS-109:15674/stomp') : new WebSocket('ws://SL-WS-109:15674/stomp/websocket');
-    this.client = Stomp.over(webSocket);
+    var port = this.secure ? '15671' : '15674',
+        httpProtocol = this.secure ? 'https' : 'http',
+        websocketProtocol = this.secure ? 'wss' : 'ws',
+        websocket;
+
+    if(this.useSockJS) {
+      websocket = new SockJS(httpProtocol + '://' + this.host + ':' + port + '/stomp')
+    } else {
+      websocket = new WebSocket(websocketProtocol + '://' + this.host + ':' + port + '/stomp/websocket');
+    }
+
+    this.client = Stomp.over(websocket);
 
     this.messageInput = $('.message-input');
     this.log = $('.log-panel .log');
@@ -21,7 +41,7 @@
         if(event.which === 13 && this.messageInput.val()) { // Enter key pressed
           // For SEND frames, a destination of the form /exchange/<name>[/<routing-key>] can be used.
           // This destination: sends to exchange <name> with the routing key <routing-key>.
-          this.client.send('/exchange/test/echo', {'content-type':'text/plain'}, this.messageInput.val());
+          this.client.send(this.subscriptionPath,  {'content-type':'text/plain'}, this.messageInput.val());
           this.messageInput.val('')
         }
       }.bind(this)
@@ -29,16 +49,16 @@
 
     this.connect = function() {
 
-      this.client.heartbeat.outgoing = 5000;
+      this.client.heartbeat.outgoing = 30000;
       // SockJS does not support server --> client heartbeats
       this.client.heartbeat.incoming = 0;
 
-      this.client.connect(this.username, this.password, this.onConnect.bind(this), this.onError.bind(this), '/');
+      this.client.connect(this.username, this.password, this.onConnect.bind(this), this.onError.bind(this), this.virtualHost);
     };
 
     this.onConnect = function() {
       // subscribe to the test queue on the echo exchange.
-      this.client.subscribe("/exchange/test/echo", this.onMessageReceived.bind(this), {ack: 'client'});
+      this.client.subscribe(this.subscriptionPath, this.onMessageReceived.bind(this));
     };
 
     this.onError = function() {
@@ -46,9 +66,6 @@
     };
 
     this.onMessageReceived = function(message) {
-      // acknowledge any message received
-      this.client.ack(message.headers['message-id'], message.headers.subscription, message.headers);
-
       this.log.val(this.log.val() + '\n' + message.body);
     };
 
